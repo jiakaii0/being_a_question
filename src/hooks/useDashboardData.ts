@@ -39,18 +39,27 @@ export function useDashboardData(range: DateRange): DashboardData & { refresh: (
       const baseline = getBaselineRange(range.start)
 
       const COLS = '"Session ID","User ID","Time","Service Rating","Intent ID","Is Resolved","Is to Live Agent"'
+      const PAGE = 10000
 
-      const [currentRes, prevRes, baselineRes] = await Promise.all([
-        supabase.from('chat_ratings').select(COLS).gte('Time', startStr).lte('Time', endStr).limit(100000),
-        supabase.from('chat_ratings').select('"Time","Service Rating"').gte('Time', formatForQuery(prev.start)).lte('Time', formatForQuery(prev.end)).limit(50000),
-        supabase.from('chat_ratings').select('"Time","Service Rating","Intent ID"').gte('Time', formatForQuery(baseline.start)).lte('Time', formatForQuery(baseline.end)).limit(50000),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      async function fetchAll(baseQuery: any): Promise<ChatRating[]> {
+        const results: ChatRating[] = []
+        let from = 0
+        while (true) {
+          const { data, error } = await baseQuery.range(from, from + PAGE - 1)
+          if (error) throw new Error(error.message)
+          results.push(...((data ?? []) as ChatRating[]))
+          if (!data || data.length < PAGE) break
+          from += PAGE
+        }
+        return results
+      }
+
+      const [current, prev_, baseline_] = await Promise.all([
+        fetchAll(supabase.from('chat_ratings').select(COLS).gte('Time', startStr).lte('Time', endStr).order('Time', { ascending: true })),
+        fetchAll(supabase.from('chat_ratings').select('"Time","Service Rating"').gte('Time', formatForQuery(prev.start)).lte('Time', formatForQuery(prev.end))),
+        fetchAll(supabase.from('chat_ratings').select('"Time","Service Rating","Intent ID"').gte('Time', formatForQuery(baseline.start)).lte('Time', formatForQuery(baseline.end))),
       ])
-
-      if (currentRes.error) throw new Error(currentRes.error.message)
-
-      const current  = (currentRes.data ?? []) as ChatRating[]
-      const prev_    = (prevRes.data ?? []) as ChatRating[]
-      const baseline_= (baselineRes.data ?? []) as ChatRating[]
 
       const summary     = buildSummary(current, prev_)
       const intentStats = buildIntentStats(current)
