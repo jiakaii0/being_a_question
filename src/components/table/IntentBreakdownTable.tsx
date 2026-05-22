@@ -10,7 +10,7 @@ export default function IntentBreakdownTable({ intentStats }: Props) {
   const [search, setSearch] = useState('')
   const [sortKey, setSortKey] = useState<keyof IntentStat>('bad')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
-  const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set(RC_CATEGORIES))
+  const [expandedCats, setExpandedCats] = useState<Set<string>>(new Set())
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
 
   function toggleSort(key: keyof IntentStat) {
