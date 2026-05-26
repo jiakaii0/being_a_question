@@ -93,9 +93,15 @@ export default function IntentHeatmap({ cells }: Props) {
                 const count = matrix.get(id)?.[h] ?? 0
                 return (
                   <div key={h} title={`${label} · Hour ${h}:00 — ${count} bad`}
-                    className="rounded-sm shrink-0"
+                    className="rounded-sm shrink-0 flex items-center justify-center"
                     style={{ width: CELL_W - 2, height: CELL_H - 2, margin: 1, backgroundColor: cellColor(count), cursor: count > 0 ? 'pointer' : 'default' }}
-                  />
+                  >
+                    {count > 0 && (
+                      <span style={{ fontSize: 7, color: 'white', fontWeight: 600, lineHeight: 1, userSelect: 'none' }}>
+                        {count}
+                      </span>
+                    )}
+                  </div>
                 )
               })}
             </div>
