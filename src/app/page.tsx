@@ -11,7 +11,7 @@ import IntentBreakdownTable from '@/components/table/IntentBreakdownTable'
 
 export default function Home() {
   const { quickFilter, range, selectQuick, selectCustom } = useDateFilter()
-  const { summary, intentStats, currentTrend, prevTrend, heatmap, ewsAlerts, lastRefreshed, isLoading, error, refresh } = useDashboardData(range)
+  const { summary, intentStats, currentTrend, prevTrend, hourlyTrend, heatmap, ewsAlerts, lastRefreshed, isLoading, error, refresh } = useDashboardData(range)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -44,7 +44,7 @@ export default function Home() {
         <SummaryCards summary={summary} />
 
         {/* Trend chart */}
-        <CsatTrendChart current={currentTrend} previous={prevTrend} />
+        <CsatTrendChart current={currentTrend} previous={prevTrend} hourly={hourlyTrend} />
 
         {/* Heatmap */}
         <IntentHeatmap cells={heatmap} />

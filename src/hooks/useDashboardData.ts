@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { DateRange, ChatRating, DashboardSummary, IntentStat, EWSAlert, TrendPoint, HeatmapCell } from '@/types'
 import {
   formatForQuery, getPreviousRange, getBaselineRange,
-  buildSummary, buildTrend, buildIntentStats, buildHeatmap, computeEWSAlerts
+  buildSummary, buildTrend, buildTrendHourly, buildIntentStats, buildHeatmap, computeEWSAlerts
 } from '@/lib/csatUtils'
 
 const REFRESH_MS = 3 * 60 * 1000
@@ -14,6 +14,7 @@ interface DashboardData {
   intentStats: IntentStat[]
   currentTrend: TrendPoint[]
   prevTrend: TrendPoint[]
+  hourlyTrend: TrendPoint[]
   heatmap: HeatmapCell[]
   ewsAlerts: EWSAlert[]
   lastRefreshed: Date | null
@@ -26,7 +27,7 @@ const EMPTY_SUMMARY: DashboardSummary = { total: 0, good: 0, bad: 0, average: 0,
 export function useDashboardData(range: DateRange): DashboardData & { refresh: () => void } {
   const [data, setData] = useState<DashboardData>({
     summary: EMPTY_SUMMARY, intentStats: [], currentTrend: [], prevTrend: [],
-    heatmap: [], ewsAlerts: [], lastRefreshed: null, isLoading: true, error: null,
+    hourlyTrend: [], heatmap: [], ewsAlerts: [], lastRefreshed: null, isLoading: true, error: null,
   })
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -65,10 +66,11 @@ export function useDashboardData(range: DateRange): DashboardData & { refresh: (
       const intentStats = buildIntentStats(current)
       const currentTrend= buildTrend(current)
       const prevTrend   = buildTrend(prev_)
+      const hourlyTrend = buildTrendHourly(current)
       const heatmap     = buildHeatmap(intentStats)
       const ewsAlerts   = computeEWSAlerts(current, baseline_, summary, summary.prevCsat)
 
-      setData({ summary, intentStats, currentTrend, prevTrend, heatmap, ewsAlerts, lastRefreshed: new Date(), isLoading: false, error: null })
+      setData({ summary, intentStats, currentTrend, prevTrend, hourlyTrend, heatmap, ewsAlerts, lastRefreshed: new Date(), isLoading: false, error: null })
     } catch (e: unknown) {
       setData(d => ({ ...d, isLoading: false, error: e instanceof Error ? e.message : 'Unknown error' }))
     }

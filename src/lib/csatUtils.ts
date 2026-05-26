@@ -111,6 +111,24 @@ export function buildTrend(rows: ChatRating[]): TrendPoint[] {
     .map(([date, s]) => ({ date, csat: calcCsat(s.good, s.bad), good: s.good, bad: s.bad, total: s.total }))
 }
 
+// ── Trend (bucket by hour) ────────────────────────────────────────────────────
+
+export function buildTrendHourly(rows: ChatRating[]): TrendPoint[] {
+  const map = new Map<string, { good: number; bad: number; total: number }>()
+  for (const r of rows) {
+    const bucket = r['Time']?.slice(0, 13) ?? 'unknown' // 'YYYY-MM-DD HH'
+    const existing = map.get(bucket) ?? { good: 0, bad: 0, total: 0 }
+    const rating = normaliseRating(r['Service Rating'])
+    existing.total++
+    if (rating === 'good') existing.good++
+    if (rating === 'bad')  existing.bad++
+    map.set(bucket, existing)
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, s]) => ({ date, csat: calcCsat(s.good, s.bad), good: s.good, bad: s.bad, total: s.total }))
+}
+
 // ── Intent stats ──────────────────────────────────────────────────────────────
 
 export function buildIntentStats(rows: ChatRating[]): IntentStat[] {
