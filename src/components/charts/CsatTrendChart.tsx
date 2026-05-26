@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Legend } from 'recharts'
 import { TrendPoint } from '@/types'
 import { format, parseISO } from 'date-fns'
 
@@ -18,10 +18,9 @@ export default function CsatTrendChart({ current, previous }: Props) {
     if (mode === 'dod') {
       return current.map(c => ({
         label: format(parseISO(c.date), 'MMM d'),
-        current: c.csat ?? null,
-        previous: null as number | null,
-        cTotal: c.total,
-        pTotal: 0,
+        good: c.good,
+        bad: c.bad,
+        csat: c.csat ?? null as number | null,
       }))
     }
     const len = Math.max(current.length, previous.length)
@@ -30,10 +29,10 @@ export default function CsatTrendChart({ current, previous }: Props) {
       const p = previous[i]
       return {
         label: c?.date ? format(parseISO(c.date), 'MMM d') : p?.date ? format(parseISO(p.date), 'MMM d') : `Day ${i + 1}`,
-        current:  c?.csat  ?? null,
-        previous: p?.csat  ?? null,
-        cTotal:   c?.total ?? 0,
-        pTotal:   p?.total ?? 0,
+        good: c?.good ?? 0,
+        bad: c?.bad ?? 0,
+        csat: c?.csat ?? null as number | null,
+        prevCsat: p?.csat ?? null as number | null,
       }
     })
   })()
@@ -43,6 +42,20 @@ export default function CsatTrendChart({ current, previous }: Props) {
     { key: 'wow', label: 'Week on Week' },
     { key: 'mom', label: 'Month on Month' },
   ]
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg shadow-md p-3 text-xs">
+        <p className="font-semibold text-gray-700 mb-1">{label}</p>
+        {payload.map((entry: any) => (
+          <p key={entry.name} style={{ color: entry.color }}>
+            {entry.name}: {entry.name.includes('CSAT') ? `${entry.value?.toFixed(1)}%` : entry.value?.toLocaleString()}
+          </p>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
@@ -63,19 +76,22 @@ export default function CsatTrendChart({ current, previous }: Props) {
       {merged.length === 0 ? (
         <div className="h-48 flex items-center justify-center text-gray-400 text-sm">No data for selected period</div>
       ) : (
-        <ResponsiveContainer width="100%" height={260}>
-          <LineChart data={merged} margin={{ top: 4, right: 16, bottom: 0, left: 0 }}>
+        <ResponsiveContainer width="100%" height={280}>
+          <ComposedChart data={merged} margin={{ top: 4, right: 48, bottom: 0, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
             <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-            <YAxis domain={[0, 100]} tickFormatter={v => `${v}%`} tick={{ fontSize: 11 }} width={40} />
-            <Tooltip formatter={(v) => typeof v === 'number' ? `${v.toFixed(1)}%` : v} />
+            <YAxis yAxisId="count" orientation="left" tick={{ fontSize: 11 }} width={45} tickFormatter={v => v.toLocaleString()} />
+            <YAxis yAxisId="pct" orientation="right" domain={[0, 100]} tickFormatter={v => `${v}%`} tick={{ fontSize: 11 }} width={40} />
+            <Tooltip content={<CustomTooltip />} />
             <Legend />
-            <ReferenceLine y={60} stroke="#4ade80" strokeDasharray="4 4" label={{ value: '60% target', fontSize: 10, fill: '#16a34a' }} />
-            <Line type="monotone" dataKey="current" name="Current Period" stroke="#EE4D2D" strokeWidth={2.5} dot={false} connectNulls />
+            <ReferenceLine yAxisId="pct" y={60} stroke="#4ade80" strokeDasharray="4 4" label={{ value: '60% target', fontSize: 10, fill: '#16a34a', position: 'insideTopRight' }} />
+            <Bar yAxisId="count" dataKey="good" name="Good" stackId="a" fill="#4ade80" radius={[0, 0, 0, 0]} maxBarSize={40} />
+            <Bar yAxisId="count" dataKey="bad" name="Bad" stackId="a" fill="#EE4D2D" radius={[3, 3, 0, 0]} maxBarSize={40} />
+            <Line yAxisId="pct" type="monotone" dataKey="csat" name="CSAT %" stroke="#f97316" strokeWidth={2.5} dot={{ r: 3 }} connectNulls />
             {mode !== 'dod' && (
-              <Line type="monotone" dataKey="previous" name="Previous Period" stroke="#9ca3af" strokeWidth={1.5} strokeDasharray="5 5" dot={false} connectNulls />
+              <Line yAxisId="pct" type="monotone" dataKey="prevCsat" name="Prev CSAT %" stroke="#9ca3af" strokeWidth={1.5} strokeDasharray="5 5" dot={false} connectNulls />
             )}
-          </LineChart>
+          </ComposedChart>
         </ResponsiveContainer>
       )}
     </div>
