@@ -151,11 +151,12 @@ export function buildIntentStats(rows: ChatRating[]): IntentStat[] {
         total: 0, good: 0, bad: 0, average: 0, unrated: 0,
         csat: 0, resolvedCount: 0, resolvedPct: 0,
         hourlyBad: Array(24).fill(0),
+        hourlyGood: Array(24).fill(0),
       })
     }
     const stat = map.get(id)!
     stat.total++
-    if (rating === 'good') stat.good++
+    if (rating === 'good') { stat.good++; if (hour >= 0) stat.hourlyGood[hour]++ }
     else if (rating === 'bad') { stat.bad++; if (hour >= 0) stat.hourlyBad[hour]++ }
     else if (rating === 'average') stat.average++
     else stat.unrated++

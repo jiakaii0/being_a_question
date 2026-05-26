@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo } from 'react'
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import { IntentStat } from '@/types'
 import { RC_CATEGORIES } from '@/lib/intentMap'
 import CsatBadge from '@/components/summary/CsatBadge'
@@ -56,10 +57,42 @@ export default function IntentBreakdownTable({ intentStats }: Props) {
     return { good, bad, total, csat }
   }
 
+  // Aggregate hourly good+bad across all intents in a category, compute hourly CSAT
+  function catHourly(stats: IntentStat[]) {
+    const good  = Array(24).fill(0) as number[]
+    const bad   = Array(24).fill(0) as number[]
+    for (const s of stats) {
+      for (let h = 0; h < 24; h++) {
+        good[h] += s.hourlyGood[h]
+        bad[h]  += s.hourlyBad[h]
+      }
+    }
+    return Array.from({ length: 24 }, (_, h) => ({
+      label: `${h < 10 ? '0' : ''}${h}:00`,
+      good: good[h],
+      bad: bad[h],
+      csat: good[h] + bad[h] > 0 ? Math.round((good[h] / (good[h] + bad[h])) * 1000) / 10 : null as number | null,
+    }))
+  }
+
   const SortIcon = ({ k }: { k: keyof IntentStat }) =>
     <span className="ml-0.5 text-gray-400">{sortKey === k ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
 
   const COL = 'px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none whitespace-nowrap hover:text-shopee-500'
+
+  const HourlyTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg shadow-md p-2 text-xs">
+        <p className="font-semibold text-gray-700 mb-1">{label}</p>
+        {payload.map((e: any) => e.value != null && (
+          <p key={e.name} style={{ color: e.color }}>
+            {e.name}: {e.name === 'CSAT %' ? `${Number(e.value).toFixed(1)}%` : Number(e.value).toLocaleString()}
+          </p>
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -88,6 +121,8 @@ export default function IntentBreakdownTable({ intentStats }: Props) {
               if (stats.length === 0) return null
               const sum = catSummary(stats)
               const isOpen = expandedCats.has(cat)
+              const hourlyData = isOpen ? catHourly(stats) : []
+
               return [
                 // Category header row
                 <tr key={`cat-${cat}`} className="bg-shopee-50 hover:bg-shopee-100 cursor-pointer" onClick={() => toggleCat(cat)}>
@@ -102,6 +137,29 @@ export default function IntentBreakdownTable({ intentStats }: Props) {
                     </div>
                   </td>
                 </tr>,
+
+                // RC hourly CSAT mini chart (shown when expanded)
+                ...(isOpen ? [
+                  <tr key={`cat-${cat}-chart`} className="bg-shopee-50 border-t border-shopee-100">
+                    <td colSpan={6} className="px-6 pb-3 pt-1">
+                      <p className="text-xs font-semibold text-gray-500 mb-1">Hourly CSAT trend — {cat}</p>
+                      <ResponsiveContainer width="100%" height={110}>
+                        <ComposedChart data={hourlyData} margin={{ top: 4, right: 40, bottom: 0, left: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                          <XAxis dataKey="label" tick={{ fontSize: 9 }} interval={2} />
+                          <YAxis yAxisId="count" orientation="left" tick={{ fontSize: 9 }} width={30} tickFormatter={v => v.toLocaleString()} />
+                          <YAxis yAxisId="pct" orientation="right" domain={[0, 100]} tickFormatter={v => `${v}%`} tick={{ fontSize: 9 }} width={32} />
+                          <Tooltip content={<HourlyTooltip />} />
+                          <ReferenceLine yAxisId="pct" y={60} stroke="#4ade80" strokeDasharray="3 3" />
+                          <Bar yAxisId="count" dataKey="good" name="Good" stackId="a" fill="#4ade80" maxBarSize={20} />
+                          <Bar yAxisId="count" dataKey="bad" name="Bad" stackId="a" fill="#EE4D2D" radius={[2, 2, 0, 0]} maxBarSize={20} />
+                          <Line yAxisId="pct" type="monotone" dataKey="csat" name="CSAT %" stroke="#f97316" strokeWidth={2} dot={{ r: 2 }} connectNulls />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </td>
+                  </tr>,
+                ] : []),
+
                 // Intent rows
                 ...(isOpen ? stats.map(s => [
                   <tr key={s.intentId} className="border-t border-gray-100 hover:bg-gray-50 cursor-pointer" onClick={() => toggleRow(s.intentId)}>

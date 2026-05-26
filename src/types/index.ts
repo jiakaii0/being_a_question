@@ -34,7 +34,8 @@ export interface IntentStat {
   csat: number
   resolvedCount: number
   resolvedPct: number
-  hourlyBad: number[]  // index 0-23
+  hourlyBad: number[]   // index 0-23
+  hourlyGood: number[]  // index 0-23
 }
 
 export type EWSAlertType = 'csat_threshold' | 'wow_drop' | 'bad_spike' | 'volume_surge'
