@@ -33,8 +33,8 @@ export default function IntentHeatmap({ cells }: Props) {
 
   if (intents.length === 0) {
     return (
-      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-        <h2 className="font-semibold text-gray-800 mb-2">Bad Rating Heatmap</h2>
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
+        <h2 className="font-semibold text-gray-800 dark:text-gray-100 mb-2">Bad Rating Heatmap</h2>
         <div className="h-32 flex items-center justify-center text-gray-400 text-sm">No data for selected period</div>
       </div>
     )
@@ -57,9 +57,9 @@ export default function IntentHeatmap({ cells }: Props) {
   const HOURS = Array.from({ length: 24 }, (_, i) => i)
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="font-semibold text-gray-800">Bad Rating Heatmap <span className="text-gray-400 font-normal text-sm">(intent × hour)</span></h2>
+        <h2 className="font-semibold text-gray-800 dark:text-gray-100">Bad Rating Heatmap <span className="text-gray-400 font-normal text-sm">(intent × hour)</span></h2>
         <div className="flex items-center gap-1 text-xs text-gray-500">
           <span>Low</span>
           {[0, 0.25, 0.5, 0.75, 1].map(t => {
@@ -77,7 +77,7 @@ export default function IntentHeatmap({ cells }: Props) {
           {/* Hour header */}
           <div className="flex" style={{ paddingLeft: LABEL_W }}>
             {HOURS.map(h => (
-              <div key={h} className="text-center text-gray-400 font-mono" style={{ width: CELL_W, fontSize: 9 }}>
+              <div key={h} className="text-center text-gray-400 dark:text-gray-500 font-mono" style={{ width: CELL_W, fontSize: 9 }}>
                 {h < 10 ? `0${h}` : h}
               </div>
             ))}
@@ -86,7 +86,7 @@ export default function IntentHeatmap({ cells }: Props) {
           {/* Rows */}
           {intents.map(({ id, label }) => (
             <div key={id} className="flex items-center">
-              <div className="text-xs text-gray-600 truncate pr-2 shrink-0" style={{ width: LABEL_W, height: CELL_H, lineHeight: `${CELL_H}px` }} title={label}>
+              <div className="text-xs text-gray-600 dark:text-gray-400 truncate pr-2 shrink-0" style={{ width: LABEL_W, height: CELL_H, lineHeight: `${CELL_H}px` }} title={label}>
                 {label}
               </div>
               {HOURS.map(h => {

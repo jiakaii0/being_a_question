@@ -14,7 +14,7 @@ export default function Home() {
   const { summary, intentStats, currentTrend, prevTrend, hourlyTrend, heatmap, ewsAlerts, lastRefreshed, isLoading, error, refresh } = useDashboardData(range)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <DashboardHeader lastRefreshed={lastRefreshed} onRefresh={refresh} isLoading={isLoading} />
 
       <main className="max-w-screen-2xl mx-auto px-4 py-6 space-y-6">

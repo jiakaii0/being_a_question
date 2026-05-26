@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { useTheme } from 'next-themes'
 import { format } from 'date-fns'
 
 interface Props {
@@ -10,6 +11,10 @@ interface Props {
 
 export default function DashboardHeader({ lastRefreshed, onRefresh, isLoading }: Props) {
   const [countdown, setCountdown] = useState(180)
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     if (lastRefreshed) setCountdown(180)
@@ -43,6 +48,18 @@ export default function DashboardHeader({ lastRefreshed, onRefresh, isLoading }:
             </span>
           )}
           <span className="text-shopee-100 tabular-nums">Next refresh: {mm}:{ss}</span>
+
+          {/* Theme toggle */}
+          {mounted && (
+            <button
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className="bg-white/20 hover:bg-white/30 text-white text-xs px-3 py-1.5 rounded transition flex items-center gap-1.5"
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {theme === 'dark' ? '☀ Light' : '🌙 Dark'}
+            </button>
+          )}
+
           <button
             onClick={onRefresh}
             disabled={isLoading}

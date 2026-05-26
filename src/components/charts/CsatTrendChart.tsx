@@ -58,8 +58,8 @@ export default function CsatTrendChart({ current, previous, hourly }: Props) {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null
     return (
-      <div className="bg-white border border-gray-200 rounded-lg shadow-md p-3 text-xs">
-        <p className="font-semibold text-gray-700 mb-1">{label}</p>
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-3 text-xs">
+        <p className="font-semibold text-gray-700 dark:text-gray-200 mb-1">{label}</p>
         {payload.map((entry: any) => (
           entry.value != null && (
             <p key={entry.name} style={{ color: entry.color }}>
@@ -72,14 +72,14 @@ export default function CsatTrendChart({ current, previous, hourly }: Props) {
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4 shadow-sm">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-semibold text-gray-800">CSAT Trend</h2>
+        <h2 className="font-semibold text-gray-800 dark:text-gray-100">CSAT Trend</h2>
         <div className="flex gap-1">
           {MODES.map(({ key, label }) => (
             <button key={key} onClick={() => setMode(key)}
               className={`px-3 py-1 text-xs font-medium rounded transition ${
-                mode === key ? 'bg-shopee-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                mode === key ? 'bg-shopee-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}>
               {label}
             </button>

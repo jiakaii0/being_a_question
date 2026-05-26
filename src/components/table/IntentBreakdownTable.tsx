@@ -78,13 +78,13 @@ export default function IntentBreakdownTable({ intentStats }: Props) {
   const SortIcon = ({ k }: { k: keyof IntentStat }) =>
     <span className="ml-0.5 text-gray-400">{sortKey === k ? (sortDir === 'asc' ? '↑' : '↓') : '↕'}</span>
 
-  const COL = 'px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider cursor-pointer select-none whitespace-nowrap hover:text-shopee-500'
+  const COL = 'px-3 py-2 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer select-none whitespace-nowrap hover:text-shopee-500'
 
   const HourlyTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null
     return (
-      <div className="bg-white border border-gray-200 rounded-lg shadow-md p-2 text-xs">
-        <p className="font-semibold text-gray-700 mb-1">{label}</p>
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-md p-2 text-xs">
+        <p className="font-semibold text-gray-700 dark:text-gray-200 mb-1">{label}</p>
         {payload.map((e: any) => e.value != null && (
           <p key={e.name} style={{ color: e.color }}>
             {e.name}: {e.name === 'CSAT %' ? `${Number(e.value).toFixed(1)}%` : Number(e.value).toLocaleString()}
@@ -95,18 +95,18 @@ export default function IntentBreakdownTable({ intentStats }: Props) {
   }
 
   return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between p-4 border-b border-gray-100">
-        <h2 className="font-semibold text-gray-800">Intent & RC Breakdown</h2>
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
+      <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-700">
+        <h2 className="font-semibold text-gray-800 dark:text-gray-100">Intent & RC Breakdown</h2>
         <input
           type="text" placeholder="Search intent or category…" value={search} onChange={e => setSearch(e.target.value)}
-          className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm w-52 focus:outline-none focus:border-shopee-400"
+          className="border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 placeholder-gray-400 rounded-lg px-3 py-1.5 text-sm w-52 focus:outline-none focus:border-shopee-400"
         />
       </div>
 
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
             <tr>
               <th className={`${COL} pl-4`}>Intent</th>
               <th className={COL} onClick={() => toggleSort('total')}>Total <SortIcon k="total" /></th>
@@ -125,13 +125,13 @@ export default function IntentBreakdownTable({ intentStats }: Props) {
 
               return [
                 // Category header row
-                <tr key={`cat-${cat}`} className="bg-shopee-50 hover:bg-shopee-100 cursor-pointer" onClick={() => toggleCat(cat)}>
+                <tr key={`cat-${cat}`} className="bg-shopee-50 dark:bg-shopee-900/20 hover:bg-shopee-100 dark:hover:bg-shopee-900/30 cursor-pointer" onClick={() => toggleCat(cat)}>
                   <td colSpan={6} className="px-4 py-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-gray-400 text-xs">{isOpen ? '▼' : '▶'}</span>
-                        <span className="font-semibold text-shopee-700 text-sm">{cat}</span>
-                        <span className="text-xs text-gray-500">({stats.length} intents · {sum.total.toLocaleString()} chats)</span>
+                        <span className="font-semibold text-shopee-700 dark:text-shopee-400 text-sm">{cat}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">({stats.length} intents · {sum.total.toLocaleString()} chats)</span>
                       </div>
                       <CsatBadge value={sum.csat} size="sm" />
                     </div>
@@ -140,9 +140,9 @@ export default function IntentBreakdownTable({ intentStats }: Props) {
 
                 // RC hourly CSAT mini chart (shown when expanded)
                 ...(isOpen ? [
-                  <tr key={`cat-${cat}-chart`} className="bg-shopee-50 border-t border-shopee-100">
+                  <tr key={`cat-${cat}-chart`} className="bg-shopee-50 dark:bg-shopee-900/10 border-t border-shopee-100 dark:border-gray-700">
                     <td colSpan={6} className="px-6 pb-3 pt-1">
-                      <p className="text-xs font-semibold text-gray-500 mb-1">Hourly CSAT trend — {cat}</p>
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Hourly CSAT trend — {cat}</p>
                       <ResponsiveContainer width="100%" height={110}>
                         <ComposedChart data={hourlyData} margin={{ top: 4, right: 40, bottom: 0, left: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -162,22 +162,22 @@ export default function IntentBreakdownTable({ intentStats }: Props) {
 
                 // Intent rows
                 ...(isOpen ? stats.map(s => [
-                  <tr key={s.intentId} className="border-t border-gray-100 hover:bg-gray-50 cursor-pointer" onClick={() => toggleRow(s.intentId)}>
+                  <tr key={s.intentId} className="border-t border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer" onClick={() => toggleRow(s.intentId)}>
                     <td className="px-4 py-2 pl-8">
-                      <div className="font-medium text-gray-800 text-xs">{s.intentId}</div>
-                      <div className="text-gray-500 text-xs truncate max-w-xs" title={s.intentName}>{s.intentName}</div>
+                      <div className="font-medium text-gray-800 dark:text-gray-200 text-xs">{s.intentId}</div>
+                      <div className="text-gray-500 dark:text-gray-400 text-xs truncate max-w-xs" title={s.intentName}>{s.intentName}</div>
                     </td>
-                    <td className="px-3 py-2 text-gray-700 tabular-nums">{s.total.toLocaleString()}</td>
+                    <td className="px-3 py-2 text-gray-700 dark:text-gray-300 tabular-nums">{s.total.toLocaleString()}</td>
                     <td className="px-3 py-2 text-green-600 font-medium tabular-nums">{s.good.toLocaleString()}</td>
                     <td className="px-3 py-2 text-red-500 font-medium tabular-nums">{s.bad.toLocaleString()}</td>
                     <td className="px-3 py-2"><CsatBadge value={s.csat} size="sm" /></td>
-                    <td className="px-3 py-2 text-gray-600 tabular-nums">{s.resolvedPct.toFixed(1)}%</td>
+                    <td className="px-3 py-2 text-gray-600 dark:text-gray-400 tabular-nums">{s.resolvedPct.toFixed(1)}%</td>
                   </tr>,
                   // Expanded sparkline row
                   expandedRows.has(s.intentId) ? (
-                    <tr key={`${s.intentId}-exp`} className="bg-gray-50 border-t border-gray-100">
+                    <tr key={`${s.intentId}-exp`} className="bg-gray-50 dark:bg-gray-900/50 border-t border-gray-100 dark:border-gray-700">
                       <td colSpan={6} className="px-8 py-3">
-                        <p className="text-xs font-semibold text-gray-500 mb-1">Bad ratings by hour</p>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Bad ratings by hour</p>
                         <div className="flex items-end gap-0.5 h-10">
                           {s.hourlyBad.map((count, h) => {
                             const maxH = Math.max(...s.hourlyBad, 1)
@@ -190,7 +190,7 @@ export default function IntentBreakdownTable({ intentStats }: Props) {
                             )
                           })}
                         </div>
-                        <div className="flex justify-between text-gray-400 text-xs mt-0.5">
+                        <div className="flex justify-between text-gray-400 dark:text-gray-500 text-xs mt-0.5">
                           <span>00:00</span><span>12:00</span><span>23:00</span>
                         </div>
                       </td>
@@ -204,7 +204,7 @@ export default function IntentBreakdownTable({ intentStats }: Props) {
       </div>
 
       {filtered.length === 0 && (
-        <div className="p-8 text-center text-gray-400 text-sm">No intents match your search.</div>
+        <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">No intents match your search.</div>
       )}
     </div>
   )

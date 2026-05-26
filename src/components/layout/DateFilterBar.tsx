@@ -35,7 +35,7 @@ export default function DateFilterBar({ quickFilter, range, onQuick, onCustom }:
           className={`px-3 py-1.5 rounded text-sm font-medium transition border ${
             quickFilter === key
               ? 'bg-shopee-500 text-white border-shopee-500'
-              : 'bg-white text-gray-600 border-gray-300 hover:border-shopee-400 hover:text-shopee-500'
+              : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-shopee-400 hover:text-shopee-500'
           }`}>
           {label}
         </button>
@@ -46,7 +46,7 @@ export default function DateFilterBar({ quickFilter, range, onQuick, onCustom }:
           className={`px-3 py-1.5 rounded text-sm font-medium transition border ${
             quickFilter === 'custom'
               ? 'bg-shopee-500 text-white border-shopee-500'
-              : 'bg-white text-gray-600 border-gray-300 hover:border-shopee-400 hover:text-shopee-500'
+              : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-shopee-400 hover:text-shopee-500'
           }`}>
           {quickFilter === 'custom'
             ? `${format(range.start, 'MMM d')} – ${format(range.end, 'MMM d')}`
@@ -54,20 +54,20 @@ export default function DateFilterBar({ quickFilter, range, onQuick, onCustom }:
         </button>
 
         {open && (
-          <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 flex flex-col gap-2 min-w-[220px]">
-            <label className="text-xs text-gray-500 font-medium">From</label>
+          <div className="absolute left-0 top-full mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 flex flex-col gap-2 min-w-[220px]">
+            <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">From</label>
             <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-              className="border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-shopee-400" />
-            <label className="text-xs text-gray-500 font-medium">To</label>
+              className="border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-shopee-400" />
+            <label className="text-xs text-gray-500 dark:text-gray-400 font-medium">To</label>
             <input type="date" value={to} onChange={e => setTo(e.target.value)}
-              className="border border-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-shopee-400" />
+              className="border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded px-2 py-1 text-sm focus:outline-none focus:border-shopee-400" />
             <div className="flex gap-2 mt-1">
               <button onClick={applyCustom} disabled={!from || !to}
                 className="flex-1 bg-shopee-500 text-white text-sm py-1.5 rounded font-medium disabled:opacity-50 hover:bg-shopee-600 transition">
                 Apply
               </button>
               <button onClick={() => setOpen(false)}
-                className="flex-1 bg-gray-100 text-gray-600 text-sm py-1.5 rounded font-medium hover:bg-gray-200 transition">
+                className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm py-1.5 rounded font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition">
                 Cancel
               </button>
             </div>
