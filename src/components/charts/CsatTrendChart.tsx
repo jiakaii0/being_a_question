@@ -19,7 +19,7 @@ export default function CsatTrendChart({ current, previous }: Props) {
       return current.map(c => ({
         label: format(parseISO(c.date), 'MMM d'),
         current: c.csat ?? null,
-        previous: null,
+        previous: null as number | null,
         cTotal: c.total,
         pTotal: 0,
       }))
