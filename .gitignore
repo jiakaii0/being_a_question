@@ -34,3 +34,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local data and browser profile
+/shopee_browser_profile/
+/databot_raw_downloads/
+/last_raw_run.txt
+/.claude/
