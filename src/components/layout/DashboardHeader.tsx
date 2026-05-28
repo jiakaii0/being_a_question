@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
+import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 
 interface Props {
@@ -13,6 +14,12 @@ export default function DashboardHeader({ lastRefreshed, onRefresh, isLoading }:
   const [countdown, setCountdown] = useState(180)
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const router = useRouter()
+
+  async function handleLogout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.push('/login')
+  }
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -66,6 +73,13 @@ export default function DashboardHeader({ lastRefreshed, onRefresh, isLoading }:
             className="bg-white text-shopee-500 font-semibold text-xs px-3 py-1.5 rounded hover:bg-shopee-50 disabled:opacity-50 transition"
           >
             {isLoading ? 'Loading…' : '↻ Refresh'}
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="bg-white/20 hover:bg-white/30 text-white text-xs px-3 py-1.5 rounded transition"
+          >
+            Sign out
           </button>
         </div>
       </div>
