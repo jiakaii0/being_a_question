@@ -82,3 +82,23 @@ export interface HeatmapCell {
   badCount: number
   totalCount: number
 }
+
+export interface CsatSummaryRow {
+  total: number; good: number; bad: number; average: number; unrated: number
+}
+
+export interface DailyTrendRow {
+  day: string; good: number; bad: number; total: number
+}
+
+export interface HourlyTrendRow {
+  bucket: string; good: number; bad: number; total: number
+}
+
+export interface IntentHourlyRow {
+  intent_id: string; hour: number; good: number; bad: number; total: number; resolved: number
+}
+
+export interface IntentDailyRow {
+  intent_id: string; day: string; bad: number; total: number
+}

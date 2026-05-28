@@ -1,5 +1,5 @@
 import { format, subDays, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns'
-import { ChatRating, DateRange, EWSAlert, IntentStat, TrendPoint, DashboardSummary, HeatmapCell } from '@/types'
+import { ChatRating, DateRange, EWSAlert, IntentStat, TrendPoint, DashboardSummary, HeatmapCell, CsatSummaryRow, DailyTrendRow, HourlyTrendRow, IntentHourlyRow, IntentDailyRow } from '@/types'
 import { getIntentCategory, getIntentId, getIntentName } from '@/lib/intentMap'
 
 // ── Date helpers ─────────────────────────────────────────────────────────────
@@ -290,6 +290,151 @@ export function computeEWSAlerts(
     const z    = std > 0 ? (vol - mean) / std : vol - mean
     if (z >= 2) {
       const raw = currentRows.find(r => getIntentId(r['Intent ID'] ?? '') === id)?.['Intent ID'] ?? id
+      alerts.push({
+        type: 'volume_surge', severity: z >= 3 ? 'critical' : 'warning',
+        message: `Volume surge on Intent ${id}`,
+        detail: `${vol} chats today vs avg ${mean.toFixed(1)}`,
+        intentId: id, intentName: getIntentName(raw), category: getIntentCategory(raw),
+        zScore: z,
+      })
+    }
+  }
+
+  return alerts.sort((a, b) => (a.severity === 'critical' ? 0 : 1) - (b.severity === 'critical' ? 0 : 1))
+}
+
+// ── Aggregate-row variants (replace raw-row functions for egress reduction) ───
+
+export function buildSummaryFromAgg(curr: CsatSummaryRow, prev: CsatSummaryRow): DashboardSummary {
+  const csat     = calcCsat(curr.good, curr.bad)
+  const prevCsat = calcCsat(prev.good, prev.bad)
+  return {
+    total: curr.total, good: curr.good, bad: curr.bad, average: curr.average, unrated: curr.unrated,
+    csat, prevCsat, csatDelta: Math.round((csat - prevCsat) * 10) / 10,
+  }
+}
+
+export function buildTrendFromAgg(rows: DailyTrendRow[]): TrendPoint[] {
+  return rows.map(r => ({ date: r.day, csat: calcCsat(r.good, r.bad), good: r.good, bad: r.bad, total: r.total }))
+}
+
+export function buildTrendHourlyFromAgg(rows: HourlyTrendRow[]): TrendPoint[] {
+  return rows.map(r => ({ date: r.bucket, csat: calcCsat(r.good, r.bad), good: r.good, bad: r.bad, total: r.total }))
+}
+
+export function buildIntentStatsFromAgg(rows: IntentHourlyRow[]): IntentStat[] {
+  const map = new Map<string, IntentStat>()
+
+  for (const r of rows) {
+    const id = getIntentId(r.intent_id)
+    if (!id) continue
+
+    if (!map.has(id)) {
+      map.set(id, {
+        intentId: id,
+        intentName: getIntentName(r.intent_id),
+        category: getIntentCategory(r.intent_id),
+        total: 0, good: 0, bad: 0, average: 0, unrated: 0,
+        csat: 0, resolvedCount: 0, resolvedPct: 0,
+        hourlyBad: Array(24).fill(0),
+        hourlyGood: Array(24).fill(0),
+      })
+    }
+    const stat = map.get(id)!
+    stat.total       += r.total
+    stat.good        += r.good
+    stat.bad         += r.bad
+    stat.resolvedCount += r.resolved
+    if (r.hour >= 0 && r.hour < 24) {
+      stat.hourlyBad[r.hour]  += r.bad
+      stat.hourlyGood[r.hour] += r.good
+    }
+  }
+
+  return Array.from(map.values()).map(s => ({
+    ...s,
+    csat: calcCsat(s.good, s.bad),
+    resolvedPct: s.total > 0 ? Math.round((s.resolvedCount / s.total) * 1000) / 10 : 0,
+  })).sort((a, b) => b.bad - a.bad)
+}
+
+export function computeEWSAlertsFromAgg(
+  currentDaily: IntentDailyRow[],
+  baselineDaily: IntentDailyRow[],
+  summary: DashboardSummary,
+  prevCsat: number
+): EWSAlert[] {
+  const alerts: EWSAlert[] = []
+
+  // 1. CSAT threshold
+  if (summary.csat < 50) {
+    alerts.push({ type: 'csat_threshold', severity: 'critical', message: `CSAT is critically low at ${summary.csat}%`, detail: 'Below 50% threshold', value: summary.csat })
+  } else if (summary.csat < 60) {
+    alerts.push({ type: 'csat_threshold', severity: 'warning', message: `CSAT is below target at ${summary.csat}%`, detail: 'Below 60% target', value: summary.csat })
+  }
+
+  // 2. WoW CSAT drop
+  const drop = Math.round((prevCsat - summary.csat) * 10) / 10
+  if (drop >= 10) {
+    alerts.push({ type: 'wow_drop', severity: 'critical', message: `CSAT dropped ${drop}pp vs previous period`, detail: `${prevCsat}% → ${summary.csat}%`, drop })
+  } else if (drop >= 5) {
+    alerts.push({ type: 'wow_drop', severity: 'warning', message: `CSAT dropped ${drop}pp vs previous period`, detail: `${prevCsat}% → ${summary.csat}%`, drop })
+  }
+
+  // Build baseline map: intentId → day → badCount
+  const baselineBad = new Map<string, Map<string, number>>()
+  const baselineVol = new Map<string, Map<string, number>>()
+  for (const r of baselineDaily) {
+    const id = getIntentId(r.intent_id)
+    if (!id) continue
+    if (!baselineBad.has(id)) { baselineBad.set(id, new Map()); baselineVol.set(id, new Map()) }
+    baselineBad.get(id)!.set(r.day, r.bad)
+    baselineVol.get(id)!.set(r.day, r.total)
+  }
+
+  // Build current maps: intentId → bad/vol totals
+  const currentBad = new Map<string, number>()
+  const currentVol = new Map<string, number>()
+  for (const r of currentDaily) {
+    const id = getIntentId(r.intent_id)
+    if (!id) continue
+    currentBad.set(id, (currentBad.get(id) ?? 0) + r.bad)
+    currentVol.set(id, (currentVol.get(id) ?? 0) + r.total)
+  }
+
+  // 3. Bad spike (Z-score)
+  for (const [id, dayMap] of baselineBad) {
+    const history = Array.from(dayMap.values())
+    if (history.length < 2) continue
+    const bad = currentBad.get(id) ?? 0
+    const vol = currentVol.get(id) ?? 0
+    if (bad < MIN_BAD || vol < MIN_VOL) continue
+    const mean = history.reduce((a, b) => a + b, 0) / history.length
+    const std  = Math.sqrt(history.reduce((s, v) => s + (v - mean) ** 2, 0) / history.length)
+    const z    = std > 0 ? (bad - mean) / std : bad - mean
+    if (z >= Z_WARN) {
+      const raw = currentDaily.find(r => getIntentId(r.intent_id) === id)?.intent_id ?? id
+      alerts.push({
+        type: 'bad_spike', severity: z >= Z_CRIT ? 'critical' : 'warning',
+        message: `Bad rating spike on Intent ${id}`,
+        detail: `Z-score ${z.toFixed(2)} — ${bad} bad today vs avg ${mean.toFixed(1)}`,
+        intentId: id, intentName: getIntentName(raw), category: getIntentCategory(raw),
+        zScore: z, badCount: bad, historicalMean: mean,
+      })
+    }
+  }
+
+  // 4. Volume surge
+  for (const [id, dayMap] of baselineVol) {
+    const history = Array.from(dayMap.values())
+    if (history.length < 2) continue
+    const vol = currentVol.get(id) ?? 0
+    if (vol < MIN_VOL) continue
+    const mean = history.reduce((a, b) => a + b, 0) / history.length
+    const std  = Math.sqrt(history.reduce((s, v) => s + (v - mean) ** 2, 0) / history.length)
+    const z    = std > 0 ? (vol - mean) / std : vol - mean
+    if (z >= 2) {
+      const raw = currentDaily.find(r => getIntentId(r.intent_id) === id)?.intent_id ?? id
       alerts.push({
         type: 'volume_surge', severity: z >= 3 ? 'critical' : 'warning',
         message: `Volume surge on Intent ${id}`,

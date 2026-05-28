@@ -1,10 +1,11 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import { DateRange, ChatRating, DashboardSummary, IntentStat, EWSAlert, TrendPoint, HeatmapCell } from '@/types'
+import { DateRange, DashboardSummary, IntentStat, EWSAlert, TrendPoint, HeatmapCell, CsatSummaryRow, DailyTrendRow, HourlyTrendRow, IntentHourlyRow, IntentDailyRow } from '@/types'
 import {
   formatForQuery, getPreviousRange, getBaselineRange,
-  buildSummary, buildTrend, buildTrendHourly, buildIntentStats, buildHeatmap, computeEWSAlerts
+  buildSummaryFromAgg, buildTrendFromAgg, buildTrendHourlyFromAgg,
+  buildIntentStatsFromAgg, buildHeatmap, computeEWSAlertsFromAgg,
 } from '@/lib/csatUtils'
 
 const REFRESH_MS = 3 * 60 * 1000
@@ -23,6 +24,7 @@ interface DashboardData {
 }
 
 const EMPTY_SUMMARY: DashboardSummary = { total: 0, good: 0, bad: 0, average: 0, unrated: 0, csat: 0, prevCsat: 0, csatDelta: 0 }
+const EMPTY_AGG: CsatSummaryRow = { total: 0, good: 0, bad: 0, average: 0, unrated: 0 }
 
 export function useDashboardData(range: DateRange): DashboardData & { refresh: () => void } {
   const [data, setData] = useState<DashboardData>({
@@ -39,36 +41,42 @@ export function useDashboardData(range: DateRange): DashboardData & { refresh: (
       const prev     = getPreviousRange(range)
       const baseline = getBaselineRange(range.start)
 
-      const COLS = '"Session ID","User ID","Time","Service Rating","Intent ID","Is Resolved","Is to Live Agent"'
-      const PAGE = 10000
-
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      async function fetchAll(baseQuery: any): Promise<ChatRating[]> {
-        const results: ChatRating[] = []
-        let from = 0
-        while (true) {
-          const { data, error } = await baseQuery.range(from, from + PAGE - 1)
-          if (error) throw new Error(error.message)
-          results.push(...((data ?? []) as ChatRating[]))
-          if (!data || data.length < PAGE) break
-          from += PAGE
-        }
-        return results
-      }
-
-      const [current, prev_, baseline_] = await Promise.all([
-        fetchAll(supabase.from('chat_ratings').select(COLS).gte('Time', startStr).lte('Time', endStr).order('Time', { ascending: true })),
-        fetchAll(supabase.from('chat_ratings').select('"Time","Service Rating"').gte('Time', formatForQuery(prev.start)).lte('Time', formatForQuery(prev.end))),
-        fetchAll(supabase.from('chat_ratings').select('"Time","Service Rating","Intent ID"').gte('Time', formatForQuery(baseline.start)).lte('Time', formatForQuery(baseline.end))),
+      const [
+        { data: currSummaryData,  error: e1 },
+        { data: prevSummaryData,  error: e2 },
+        { data: dailyCurrData,    error: e3 },
+        { data: dailyPrevData,    error: e4 },
+        { data: hourlyCurrData,   error: e5 },
+        { data: intentHourlyData, error: e6 },
+        { data: intentDailyCurr,  error: e7 },
+        { data: intentDailyBase,  error: e8 },
+      ] = await Promise.all([
+        supabase.rpc('get_csat_summary',        { start_ts: startStr,                          end_ts: endStr }),
+        supabase.rpc('get_csat_summary',        { start_ts: formatForQuery(prev.start),        end_ts: formatForQuery(prev.end) }),
+        supabase.rpc('get_daily_trend',         { start_ts: startStr,                          end_ts: endStr }),
+        supabase.rpc('get_daily_trend',         { start_ts: formatForQuery(prev.start),        end_ts: formatForQuery(prev.end) }),
+        supabase.rpc('get_hourly_trend',        { start_ts: startStr,                          end_ts: endStr }),
+        supabase.rpc('get_intent_hourly_stats', { start_ts: startStr,                          end_ts: endStr }),
+        supabase.rpc('get_intent_daily_stats',  { start_ts: startStr,                          end_ts: endStr }),
+        supabase.rpc('get_intent_daily_stats',  { start_ts: formatForQuery(baseline.start),    end_ts: formatForQuery(baseline.end) }),
       ])
 
-      const summary     = buildSummary(current, prev_)
-      const intentStats = buildIntentStats(current)
-      const currentTrend= buildTrend(current)
-      const prevTrend   = buildTrend(prev_)
-      const hourlyTrend = buildTrendHourly(current)
-      const heatmap     = buildHeatmap(intentStats)
-      const ewsAlerts   = computeEWSAlerts(current, baseline_, summary, summary.prevCsat)
+      const err = e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8
+      if (err) throw new Error(err.message)
+
+      const currSummary  = (currSummaryData as CsatSummaryRow[])?.[0]  ?? EMPTY_AGG
+      const prevSummary  = (prevSummaryData as CsatSummaryRow[])?.[0]  ?? EMPTY_AGG
+      const summary      = buildSummaryFromAgg(currSummary, prevSummary)
+      const intentStats  = buildIntentStatsFromAgg((intentHourlyData ?? []) as IntentHourlyRow[])
+      const currentTrend = buildTrendFromAgg((dailyCurrData   ?? []) as DailyTrendRow[])
+      const prevTrend    = buildTrendFromAgg((dailyPrevData   ?? []) as DailyTrendRow[])
+      const hourlyTrend  = buildTrendHourlyFromAgg((hourlyCurrData ?? []) as HourlyTrendRow[])
+      const heatmap      = buildHeatmap(intentStats)
+      const ewsAlerts    = computeEWSAlertsFromAgg(
+        (intentDailyCurr ?? []) as IntentDailyRow[],
+        (intentDailyBase ?? []) as IntentDailyRow[],
+        summary, summary.prevCsat,
+      )
 
       setData({ summary, intentStats, currentTrend, prevTrend, hourlyTrend, heatmap, ewsAlerts, lastRefreshed: new Date(), isLoading: false, error: null })
     } catch (e: unknown) {
