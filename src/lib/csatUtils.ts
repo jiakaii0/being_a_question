@@ -24,7 +24,7 @@ export function getPreviousRange(range: DateRange): DateRange {
 }
 
 export function getBaselineRange(start: Date): DateRange {
-  return { start: subDays(start, 7), end: new Date(start.getTime() - 1) }
+  return { start: subDays(start, 3), end: new Date(start.getTime() - 1) }
 }
 
 // ── Rating normalisation ──────────────────────────────────────────────────────
